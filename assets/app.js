@@ -1,34 +1,62 @@
 console.log('app.js');
 // if ( document.querySelector('canvas').getContext ) {}
-/*const backgroundCtx = document
+const backgroundCtx = document
     .getElementById('background-layer')
     .getContext('2d');
 const gameCtx = document
     .getElementById('game-layer')
-    .getContext('2d');*/
+    .getContext('2d');
 const uiCtx = document
     .getElementById('ui-layer')
     .getContext('2d');
 
-let block;
+let game = new Game();
+game.setup(backgroundCtx, uiCtx);
+
+let tetromino = new Block();
+tetromino.x = 200;
 let color;
 let r,g,b;
+
+setInterval(function () {
+    tetromino.spin ++;
+}, 100);
+setInterval(function () {
+    r = dice(256);
+    g = dice(256);
+    b = dice(256);
+    color = 'rgb(' + r + ', ' + g + ', ' + b + ')';
+    tetromino.color = color;
+}, 400);
+
+window.addEventListener('keydown', function (e) {
+    console.log(e.key);
+    if (
+        e.key === 'ArrowRight' &&
+        tetromino.x < 300
+    ) tetromino.move(gameCtx, tetromino.width);
+
+    if (
+        e.key === 'ArrowLeft' &&
+        tetromino.x > 120
+    ) tetromino.move(gameCtx, -tetromino.width);
+})
+
+let v = game.level;
 function loop(time) {
-    for (let i = 0; i < 21; i++) {
-        for (let j = 0; j < 16; j++) {
-            r = i*j;
-            g = r;
-            b = r;
-            // r = dice(255);
-            // g = dice(255);
-            // b = dice(255);
-            color = 'rgb(' + r + ', ' + g + ', ' + b + ')';
-            block = new Block(color);
-            block.x = j*20;
-            block.y = i*20;
-            block.render(uiCtx);
+    if (tetromino.y <= gameCtx.canvas.height - tetromino.height) {
+        tetromino.move(gameCtx, 0, v);
+    } else {
+        tetromino.spin = 0;
+        tetromino.y = tetromino.y - v;
+        game.blocks.push(tetromino);
+        tetromino = new Block();
+        tetromino.x = 200;
+        for (let block of game.blocks) {
+            block.render(backgroundCtx);
         }
     }
     requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
