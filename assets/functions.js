@@ -17,3 +17,21 @@ function dice(nb) {
 function isEven(nb) {
     return nb % 2 === 0;
 }
+
+/**
+ * return a random tetromino Object
+ * @returns {I|O|T|L|J}
+ */
+function randomTetromino(view){
+    let tetrominos = [
+        new I(view),
+        new O(view),
+        new T(view),
+        new L(view),
+        new J(view),
+        new Z(view),
+        new S(view)
+    ];
+    let r = dice(tetrominos.length);
+    return tetrominos[r];
+}
