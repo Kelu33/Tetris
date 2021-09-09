@@ -6,23 +6,34 @@ let game = new Game(tetris);
 game.setup();
 game.start();
 
-let i = 0;
-function loop(time) {
+/*for (let block of game.current.blocks) {
+    console.log(block.x, block.y);
+}*/
+console.log(game.current.posX, game.current.posY);
+console.log('--------------------------');
+
+/*let test = new I(tetris);
+test.posX = 9;
+test.posY = 15;
+test.build();
+test.render(game.gameCtx);
+test.spin90(game);*/
+
+/*function loop(time) {
     if (game.current.fall(game)) {
-        game.current.fall(game);
+        if (game.current.fall(game) !== 'gameOver') {
+            game.current.fall(game);
+        } else {
+            console.log('gameOver');
+            return;
+        }
     } else {
-        // console.log('collided');
-        // console.log(game.blocks);
-        // console.log(game.current.blocks);
-        // console.log(game.current);
-        console.log(game.nexts);
-        i ++;
+        // console.log(game.current.fall(game));
         game.update();
-        if (i >= 10) return;
     }
     requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+requestAnimationFrame(loop);*/
 
 
 

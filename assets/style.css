@@ -12,8 +12,8 @@ h1 {
 }
 #tetris {
     position: relative;
-    width: 660px;
-    height: 630px;
+    width: 440px;
+    height: 420px;
     background-color: #f2f2f2;
 }
 #game-layer, #ui-layer, #background-layer { position: absolute; }

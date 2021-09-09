@@ -120,21 +120,32 @@ class Block {
         this.render(ctx);
     }
     collisionDetector(game) {
-        // console.log(this.view.constructor);
-
+        if (game.blocks.length !== 0){
+            for (let tetromino of game.blocks) {
+                for (let block of tetromino.blocks) {
+                    if (
+                        (
+                            this.y + this.height >= block.y &&
+                            this.x < block.x + block.width
+                        ) && (
+                            this.y + this.height >= block.y &&
+                            this.x + this.width > block.x
+                        )
+                    ) {
+                        if (block.y <= 0) return 'gameOver';
+                        else return true;
+                    }
+                }
+            }
+        }
         return this.y + this.height >= game.game.height;
-
-
-        /*for (let block of game.blocks) {
-        }*/
-        // console.log(game.blocks);
     }
 }
 
 class Game {
     constructor(view) {
         this.view = view;
-        this.level = 3;
+        this.level = 1;
         this.sPosX = 9;
         this.sPosY = -3;
         this.color1 = 'rgb(127.5, 127.5, 127.5)';
@@ -178,31 +189,32 @@ class Game {
                 block.render(this.backgroundCtx);
             }
         }
-        let blocksWidth = w / 22;
-        let blocksHeight = h / 21;
+        let bw = w / 22;
+        let bh = h / 21;
         let frame = new Block(this.view);
         frame.color = this.color1;
         frame.x = 0;
         frame.y = 0;
-        frame.width = blocksWidth * 6;
-        frame.height = blocksHeight * 6;
+        frame.width = bw * 6;
+        frame.height = bh * 6;
         frame.render(this.uiCtx, true);
         frame.y = frame.height;
         frame.height = h - frame.height;
         frame.render(this.uiCtx);
-        frame.x = w - blocksWidth * 6;
+        frame.x = w - bw * 6;
         frame.y = 0;
-        frame.height = h - blocksHeight * 6;
+        frame.height = h - bh * 6;
         frame.render(this.uiCtx, true);
         frame.y = frame.height;
-        frame.height = blocksHeight * 6;
+        frame.height = bh * 6;
         frame.render(this.uiCtx);
     }
     update() {
+        this.blocks.push(this.current);
         let tetrominos = [
             new I(this.view),
-            new T(this.view),
             new O(this.view),
+            new T(this.view),
             new L(this.view),
             new J(this.view),
             new Z(this.view),
@@ -229,13 +241,16 @@ class Game {
             next.posY = o;
             next.build();
             this.uiCtx.clearRect(
-                next.posX * 30,
-                next.posY * 30, // TODO! understand
+                next.posX * bw,
+                next.posY * bh,
                 bw * 4,
                 bh * 4
             )
             o += 4;
             next.render(this.uiCtx);
+        }
+        for (let block of this.blocks) {
+            block.render(this.backgroundCtx);
         }
     }
     start() {
@@ -255,6 +270,33 @@ class Game {
         this.current.posY = this.sPosY;
         this.current.build();
         this.current.render(this.gameCtx);
+
+        window.addEventListener('keydown', function (e, tetromino){
+            // console.log(e.key);
+            let f0 = false;
+            let f1 = false;
+            if (!game.current.collisionDetector(game)){
+                if (e.key === 'ArrowLeft') {
+                    for (let block of game.current.blocks) {
+                        if (block.x <= block.width * 6) f0 = true;
+                    }
+                    if (!f0) {
+                        game.current.move(game.gameCtx, - game.current.blocks[0].width, 0);
+                    }
+                }
+                if (e.key === 'ArrowRight') {
+                    for (let block of game.current.blocks) {
+                        if (block.x > block.width * 14) f1 = true;
+                    }
+                    if (!f1) {
+                        game.current.move(game.gameCtx, game.current.blocks[0].width, 0);
+                    }
+                }
+                if (e.key === 'ArrowUp' && !f0 && !f1) {
+                    game.current.spin90(game);
+                }
+            }
+        });
     }
 }
 
@@ -279,8 +321,9 @@ class Tetromino {
         let x = this.posX;
         let y = this.posY;
         for (let line of this.patterns[this.spin]) {
-            for (let block of line) {
-                if (block !== 0) {
+            for (let digit of line) {
+                if (digit !== 0) {
+                    let block = digit;
                     block = new Block(this.view, this.color);
                     block.x = x * block.width;
                     block.y = y * block.height;
@@ -302,31 +345,68 @@ class Tetromino {
         x = 0,
         y = 0
     ){
+        let posX = x / this.blocks[0].width;
+        let posY = x / this.blocks[0].height;
         for (let block of this.blocks) {
             ctx.clearRect(block.x,block.y, block.width, block.height);
             block.x += x;
             block.y += y;
+            //console.log(block.x, block.y);
         }
-        this.posX += x;
-        this.posY += y;
+        console.log(this.posX, this.posY);
+        console.log('--------------------------');
+        this.posX += posX;
+        this.posY += posY;
+        console.log(this.posX, this.posY);
+        console.log('--------------------------');
         this.render(ctx);
+    }
+    spin90(game) {
+        for (let block of this.blocks) {
+            game.gameCtx.clearRect(block.x,block.y, block.width, block.height);
+            console.log(block.x, block.y);
+        }
+        console.log('--------------------------');
+        this.spin++;
+        let i = 0;
+        let x = this.posX;
+        let y = this.posY;
+        for (let line of this.patterns[this.spin]) {
+            for (let digit of line) {
+                if (digit !== 0) {
+                    this.blocks[i].x = x * this.blocks[i].width;
+                    this.blocks[i].y = y * this.blocks[i].height; // TODO! debug!
+                    console.log(this.blocks[i].x, this.blocks[i].y);
+                    i++;
+                }
+                x++;
+            }
+            x = this.posX;
+            y++;
+        }
+        this.render(game.gameCtx); // TODO! x y offset + spin % !!!build()!!!
+        console.log('--------------------------');
     }
     fall(game){
         let detection = this.collisionDetector(game);
         if (!detection) {
             game.current.move(game.gameCtx, 0, game.level);
             return true;
-        } else return false;
+        } else if (detection === 'gameOver') {
+            return detection;
+        } else {
+            return false;
+        }
     }
     collisionDetector(game){
         for (let block of this.blocks) {
             if(block.collisionDetector(game)) {
+                if (block.collisionDetector(game) === 'gameOver') return 'gameOver';
                 return true;
             }
         }
     }
 }
-
 class I extends Tetromino {
     constructor(view) {
         super(view);
@@ -335,15 +415,15 @@ class I extends Tetromino {
         this.color = 'lightblue';
         this.patterns = [
             [
-                [0,1,0,0],
-                [0,1,0,0],
-                [0,1,0,0],
-                [0,1,0,0]
+                [0,0,1,0],
+                [0,0,1,0],
+                [0,0,1,0],
+                [0,0,1,0]
             ],[
                 [0,0,0,0],
                 [0,0,0,0],
-                [0,0,0,0],
-                [1,1,1,1]
+                [1,1,1,1],
+                [0,0,0,0]
             ],[
                 [0,0,1,0],
                 [0,0,1,0],
@@ -362,9 +442,24 @@ class O extends Tetromino {
         this.patterns = [
             [
                 [0,0,0,0],
-                [0,1,1,0],
-                [0,1,1,0],
-                [0,0,0,0]
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
             ]
         ];
     }
@@ -378,9 +473,24 @@ class T extends Tetromino {
         this.patterns = [
             [
                 [0,0,0,0],
-                [0,0,0,0],
-                [1,1,1,0],
+                [0,1,0,0],
+                [1,1,0,0],
                 [0,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
             ]
         ];
     }
@@ -395,8 +505,23 @@ class L extends Tetromino {
             [
                 [0,0,0,0],
                 [0,0,0,0],
-                [1,1,1,0],
-                [1,0,0,0]
+                [0,0,1,0],
+                [1,1,1,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
             ]
         ];
     }
@@ -411,8 +536,23 @@ class J extends Tetromino {
             [
                 [0,0,0,0],
                 [0,0,0,0],
-                [1,1,1,0],
-                [0,0,1,0]
+                [1,0,0,0],
+                [1,1,1,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
             ]
         ];
     }
@@ -426,9 +566,24 @@ class Z extends Tetromino {
         this.patterns = [
             [
                 [0,0,0,0],
+                [0,1,0,0],
+                [1,1,0,0],
+                [1,0,0,0]
+            ],[
+                [0,0,0,0],
                 [0,0,0,0],
                 [1,1,0,0],
-                [0,1,1,0]
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
             ]
         ];
     }
@@ -442,8 +597,23 @@ class S extends Tetromino {
         this.patterns = [
             [
                 [0,0,0,0],
+                [0,0,1,0],
+                [0,0,1,1],
+                [0,0,0,1]
+            ],[
                 [0,0,0,0],
-                [0,1,1,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
+                [1,1,0,0]
+            ],[
+                [0,0,0,0],
+                [0,0,0,0],
+                [1,1,0,0],
                 [1,1,0,0]
             ]
         ];
