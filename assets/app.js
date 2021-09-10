@@ -19,7 +19,7 @@ test.build();
 test.render(game.gameCtx);
 test.spin90(game);*/
 
-/*function loop(time) {
+function loop(time) {
     if (game.current.fall(game)) {
         if (game.current.fall(game) !== 'gameOver') {
             game.current.fall(game);
@@ -33,7 +33,7 @@ test.spin90(game);*/
     }
     requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);*/
+requestAnimationFrame(loop);
 
 
 
