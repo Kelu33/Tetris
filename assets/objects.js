@@ -1,5 +1,203 @@
 console.log('objects.js');
 
+class Game {
+    constructor(view) {
+        this.view = view;
+        this.width = this.view.clientWidth;
+        this.height = this.view.clientHeight;
+        this.blockWidth = this.width / 21;
+        this.blockHeight = this.height / 21;
+        this.color1 = 'rgb(127.5, 127.5, 127.5)';
+        this.color2 = 'rgb(255, 255, 255)';
+
+        this.startPosX = this.blockWidth * 8.5;
+        this.startPosY = - this.blockHeight * 3;
+
+        this.nextPosX = this.width - this.blockWidth * 5.25;
+        this.nextPosY = [
+            this.blockHeight + this.blockHeight / 4,
+            this.blockHeight * 6 + this.blockHeight / 4,
+            this.blockHeight * 11 + this.blockHeight / 4
+        ];
+
+        this.holdPosX = this.blockWidth / 4;
+        this.holdPosY = this.blockHeight + this.blockHeight / 4;
+
+        this.level = 1;
+        this.blocks = [];
+    }
+    init() {
+        this.game = document.createElement('canvas');
+        if (!this.game.getContext('2d')) {
+            let error = document.createElement('div');
+            error.className = 'canvas-error';
+            error.textContent = 'no canvas support';
+            this.view.appendChild(error);
+            console.log('no canvas support');
+            return false;
+        }
+        this.gameCtx = this.game.getContext('2d');
+        this.game.id = 'game-layer';
+        this.ui = document.createElement('canvas');
+        this.uiCtx = this.ui.getContext('2d');
+        this.ui.id = 'ui-layer';
+        this.background = document.createElement('canvas');
+        this.backgroundCtx = this.background.getContext('2d');
+        this.background.id = 'background-layer';
+        let elements = [
+            this.game,
+            this.ui,
+            this.background
+        ];
+        let z = 3;
+        for (let element of elements) {
+            element.style.position = 'absolute';
+            element.width = this.width;
+            element.height = this.height;
+            element.style.zIndex = z.toString();
+            this.view.appendChild(element);
+            z--;
+        }
+        this.build();
+    }
+    build() {
+        let block = new Block(this.view);
+        let x = this.blockWidth / 2;
+        let y = 0;
+        for (let i = 0; i < 21; i++) {
+            for (let j = 0; j < 20; j++) {
+                if (j >= 5 && j < 15) {
+                    block.color = this.color1;
+                    block.x = x;
+                    block.y = y;
+                    block.render(this.backgroundCtx);
+                } else if (j < 5 && i < 6) {
+                    block.color = this.color2;
+                    block.x = x - this.blockWidth / 4;
+                    block.y = y + this.blockHeight / 4;
+                    block.render(this.backgroundCtx);
+                } else if (j >= 15 && i < 16) {
+                    block.color = this.color2;
+                    block.x = x + this.blockWidth / 4;
+                    block.y = y + this.blockHeight / 4;
+                    block.render(this.backgroundCtx);
+                }
+                x += this.blockWidth;
+            }
+            x =  this.blockWidth / 2;
+            y += this.blockHeight;
+        }
+        let frame = new Block(this.view);
+        frame.color = this.color1;
+        frame.x = 0;
+        frame.y = 0;
+        frame.width = (this.blockWidth * 6) - this.blockWidth / 2;
+        frame.height = (this.blockHeight * 6) + this.blockHeight / 2;
+        frame.render(this.uiCtx, true);
+
+        frame.y = frame.height;
+        frame.height = this.height - frame.height;
+        frame.render(this.uiCtx);
+
+        frame.x = (this.width - this.blockWidth * 6) + this.blockWidth / 2;
+        frame.y = 0;
+        frame.height = (this.height - this.blockHeight * 5) + this.blockHeight / 2;
+        frame.render(this.uiCtx, true);
+
+        frame.y = frame.height;
+        frame.height = (this.blockHeight * 5) - this.blockHeight / 2;
+        frame.render(this.uiCtx);
+    }
+    randomTetromino() {
+        let tetrominos = [
+            new I(this.view),
+            new O(this.view),
+            new T(this.view),
+            new L(this.view),
+            new J(this.view),
+            new Z(this.view),
+            new S(this.view)
+        ];
+        let r = dice(tetrominos.length);
+        return tetrominos[r];
+    }
+    start() {
+        this.current = this.randomTetromino();
+        this.current.posX = this.startPosX;
+        this.current.posY = this.startPosY;
+        this.current.build(this);
+        this.current.render(this.gameCtx);
+        this.nexts = [];
+        for (let i = 0; i < 3; i++) {
+            let next = this.randomTetromino();
+            next.posX = this.nextPosX;
+            next.posY = this.nextPosY[i];
+            next.build(this);
+            next.render(this.uiCtx);
+            this.nexts.push(next);
+        }
+        this.addControls(this);
+    }
+    addControls(game) {
+        window.addEventListener('keydown', function (e){ // TODO! debug
+            if (e.key === 'ArrowLeft') {
+                let f = false;
+                for (let block of game.current.blocks) {
+                    if (block.isCollided(game) === 'leftWall') f = true;
+                }
+                if (!f) game.current.move(game.gameCtx, - game.blockWidth);
+            }
+            if (e.key === 'ArrowRight') {
+                let f = false;
+                for (let block of game.current.blocks) {
+                    if (block.isCollided(game) === 'rightWall') f = true;
+                }
+                if (!f) game.current.move(game.gameCtx, + game.blockWidth);
+            }
+        });
+    }
+    update() {
+        for (let block of this.current.blocks) {
+            block.render(this.backgroundCtx);
+            this.blocks.push(block);
+        }
+        let tetrominos = [
+            new I(this.view),
+            new O(this.view),
+            new T(this.view),
+            new L(this.view),
+            new J(this.view),
+            new Z(this.view),
+            new S(this.view),
+        ];
+        this.nexts[0] = tetrominos[this.nexts[0].id];
+        this.current = this.nexts[0];
+        this.current.posX = this.startPosX;
+        this.current.posY = this.startPosY;
+        this.current.build(this);
+        this.current.render(this.gameCtx);
+        this.nexts.shift();
+        this.nexts.push(this.randomTetromino());
+        let i = 0;
+        for (let next of this.nexts) {
+            next.posX = this.nextPosX;
+            next.posY = this.nextPosY[i];
+            next.build(this);
+            this.uiCtx.clearRect(
+                next.posX,
+                next.posY,
+                this.blockWidth * 5 - this.blockWidth / 4,
+                this.blockHeight * 5
+            );
+            next.render(this.uiCtx);
+            i++;
+        }
+        for (let block of this.blocks) {
+            block.render(this.backgroundCtx);
+        }
+    }
+}
+
 class Block {
     constructor(view, color = false) {
         this.view = view;
@@ -7,7 +205,7 @@ class Block {
         if (color) this.color = color;
         this.x = 0;
         this.y = 0;
-        this.width = this.view.clientWidth/22;
+        this.width = this.view.clientWidth/21;
         this.height = this.view.clientHeight/21;
         this.border = this.width/3;
         this.spin = 0;
@@ -109,225 +307,73 @@ class Block {
             }
         }
     }
-    move(
-        ctx,
-        x = 0,
-        y = 0
-    ){
-        ctx.clearRect(this.x,this.y, this.width, this.height);
-        this.x += x;
-        this.y += y;
-        this.render(ctx);
-    }
-    collisionDetector(game) {
-        if (game.blocks.length !== 0){
-            for (let tetromino of game.blocks) {
-                for (let block of tetromino.blocks) {
-                    if (
-                        (
-                            this.y + this.height >= block.y &&
-                            this.x < block.x + block.width
-                        ) && (
-                            this.y + this.height >= block.y &&
-                            this.x + this.width > block.x
-                        )
-                    ) {
-                        if (block.y <= 0) return 'gameOver';
-                        return true;
-                    }
-                }
+    isCollided(game) {
+        let detection = false;
+        for (let block of game.blocks) {
+            if (
+                this.y + this.height >= block.y &&
+                this.x  === block.x + block.width  // TODO! debug
+            ) detection = 'leftWall';
+            if (
+                this.y + this.height >= block.y &&
+                this.x + this.width  === block.x
+            ) detection = 'rightWall';
+            if (
+                (
+                    this.y + this.height >= block.y &&
+                    this.x < block.x + block.width &&
+                    this.x >= block.x
+                ) || (
+                    this.y + this.height >= block.y &&
+                    this.x + this.width > block.x &&
+                    this.x <= block.x
+                )
+            ) {
+                if (this.y <= 0) return 'gameOver';
+                return true;
             }
         }
-        if (this.x <= this.width * 6) return 'leftWall';
-        else if (this.x + this.width > this.width * 15) return 'rightWall';
-        return this.y + this.height >= game.game.height;
-    }
-}
-
-class Game {
-    constructor(view) {
-        this.view = view;
-        this.level = 1;
-        this.sPosX = 9;
-        this.sPosY = -3;
-        this.color1 = 'rgb(127.5, 127.5, 127.5)';
-        this.color2 = 'rgb(255, 255, 255)';
-        this.background = document.createElement('canvas');
-        this.background.id = 'background-layer';
-        this.backgroundCtx = this.background.getContext('2d');
-        this.ui = document.createElement('canvas');
-        this.ui.id = 'ui-layer';
-        this.uiCtx = this.ui.getContext('2d');
-        this.game = document.createElement('canvas');
-        this.game.id = 'game-layer';
-        this.gameCtx = this.game.getContext('2d');
-        this.blocks = [];
-        this.current = 'game.start()';
-        this.nexts = [];
-    }
-    setup() {
-        let w = this.view.clientWidth;
-        let h = this.view.clientHeight;
-        this.background.width = w;
-        this.background.height = h;
-        this.view.appendChild(this.background);
-        this.ui.width = w;
-        this.ui.height = h;
-        this.view.appendChild(this.ui);
-        this.game.width = w;
-        this.game.height = h;
-        this.view.appendChild(this.game);
-        let block = new Block(this.view);
-        block.width = w / 22;
-        block.height = h / 21;
-        let c;
-        for (let i = 0; i < 21; i++) {
-            for (let j = 0; j< 24; j++) {
-                if (j > 5 && j < 16) c = this.color1;
-                else c = this.color2;
-                block.color = c;
-                block.x = j*block.width;
-                block.y = i*block.height;
-                block.render(this.backgroundCtx);
-            }
-        }
-        let bw = w / 22;
-        let bh = h / 21;
-        let frame = new Block(this.view);
-        frame.color = this.color1;
-        frame.x = 0;
-        frame.y = 0;
-        frame.width = bw * 6;
-        frame.height = bh * 6;
-        frame.render(this.uiCtx, true);
-        frame.y = frame.height;
-        frame.height = h - frame.height;
-        frame.render(this.uiCtx);
-        frame.x = w - bw * 6;
-        frame.y = 0;
-        frame.height = h - bh * 6;
-        frame.render(this.uiCtx, true);
-        frame.y = frame.height;
-        frame.height = bh * 6;
-        frame.render(this.uiCtx);
-    }
-    update() {
-        this.blocks.push(this.current);
-        let tetrominos = [
-            new I(this.view),
-            new O(this.view),
-            new T(this.view),
-            new L(this.view),
-            new J(this.view),
-            new Z(this.view),
-            new S(this.view),
-        ];
-        this.nexts[0] = tetrominos[this.nexts[0].id];
-        this.current = this.nexts[0];
-        this.current.posX = this.sPosX;
-        this.current.posY = this.sPosY;
-        this.current.build();
-        this.current.render(this.gameCtx);
-
-        this.nexts.shift();
-        this.nexts.push(randomTetromino(this.view));
-
-        let w = this.view.clientWidth;
-        let h = this.view.clientHeight;
-        let bw = w / 22;
-        let bh = h / 21;
-
-        let o = 1;
-        for (let next of this.nexts) {
-            next.posX = 17;
-            next.posY = o;
-            next.build();
-            this.uiCtx.clearRect(
-                next.posX * bw,
-                next.posY * bh,
-                bw * 4,
-                bh * 4
-            )
-            o += 4;
-            next.render(this.uiCtx);
-        }
-        for (let block of this.blocks) {
-            block.render(this.backgroundCtx);
-        }
-    }
-    start() {
-        for (let i = 0 ; i < 3; i ++) {
-            this.nexts.push(randomTetromino(this.view));
-        }
-        let o = 1;
-        for (let next of this.nexts) {
-            next.posX = 17;
-            next.posY = o;
-            next.build();
-            next.render(this.uiCtx);
-            o += 4;
-        }
-        this.current = randomTetromino(this.view);
-        this.current.posX = this.sPosX;
-        this.current.posY = this.sPosY;
-        this.current.build();
-        this.current.render(this.gameCtx);
-
-        window.addEventListener('keydown', function (e, tetromino){
-            // console.log(e.key);
-            console.log(game.current.fall(game));
-            console.log(game.current.collisionDetector(game));
-            if (e.key === 'ArrowLeft') {
-                if (game.current.collisionDetector(game) !== 'leftWall') {
-                    game.current.move(game.gameCtx, - game.current.blocks[0].width);
-                }
-            }
-            if (e.key === 'ArrowRight') {
-                if (game.current.collisionDetector(game) !== 'rightWall') {
-                    game.current.move(game.gameCtx, game.current.blocks[0].width);
-                }
-            }
-            if (e.key === 'ArrowUp') {
-                game.current.spin90(game);
-            }
-        });
+        if (this.x <= game.blockWidth * 6) return 'leftWall';
+        else if (detection) return detection;
+        else if (this.x + this.width >= game.blockWidth * 15) return 'rightWall';
+        else return false;
     }
 }
 
 class Tetromino {
-    constructor(view) {
-        this.view = view;
-        this.color = '';
+    constructor() {
         this.posX = 0;
         this.posY = 0;
-        this.spin = 0;
+        this.color = 'rgb(127.5, 127.5, 127.5)';
         this.blocks = [];
+        this.spin = 0;
         this.patterns = [
             [
                 [0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0]
+
             ]
         ];
     }
-    build() {
-        let pattern = this.patterns[this.spin];
+    build(game) {
+        let pattern = this.patterns[this.spin % this.patterns.length];
         let x = this.posX;
         let y = this.posY;
         for (let line of pattern) {
             for (let digit of line) {
                 if (digit !== 0) {
                     let block = digit;
-                    block = new Block(this.view, this.color);
-                    block.x = x * block.width;
-                    block.y = y * block.height;
+                    block = new Block(game.view, this.color);
+                    block.x = x;
+                    block.y = y;
                     this.blocks.push(block);
                 }
-                x++;
+                x += game.blockWidth;
             }
             x = this.posX;
-            y++;
+            y += game.blockHeight;
         }
     }
     render(ctx) {
@@ -339,7 +385,7 @@ class Tetromino {
         ctx,
         x = 0,
         y = 0
-    ){
+    ) {
         for (let block of this.blocks) {
             ctx.clearRect(block.x,block.y, block.width, block.height);
             block.x += x;
@@ -349,62 +395,24 @@ class Tetromino {
         if (y !== 0) this.posY += y / this.blocks[0].height;
         this.render(ctx);
     }
-    spin90(game) {
+    fall(game) {
         for (let block of this.blocks) {
-            game.gameCtx.clearRect(block.x,block.y, block.width, block.height);
+            if (block.y + block.height >= game.height) return 'bottom';
+            if (block.isCollided(game) === 'gameOver') return false;
+            if (
+                block.isCollided(game) &&
+                block.isCollided(game) !== 'leftWall' &&
+                block.isCollided(game) !== 'rightWall'
+            ) return 'collided';
         }
-        this.spin++;
-        if (this.spin >= this.patterns.length) this.spin = 0;
-        let pattern = this.patterns[this.spin];
-        let i = 0;
-        let x = this.posX;
-        let y = this.posY;
-        for (let line of pattern) {
-            for (let digit of line) {
-                if (digit !== 0) {
-                    this.blocks[i].x = x * this.blocks[i].width;
-                    this.blocks[i].y = y * this.blocks[i].height;
-                    i++;
-                }
-                x++;
-            }
-            x = this.posX;
-            y++;
-        }
-        this.render(game.gameCtx);
-    }
-    fall(game){
-        let detection = this.collisionDetector(game);
-        console.log(detection);
-        if (
-            !detection &&
-            detection !== 'leftWall' &&
-            detection !== 'rightWall'
-        ) {
-            game.current.move(game.gameCtx, 0, game.level);
-            return true;
-        } else {
-            return false;
-        }
-    }
-    collisionDetector(game){
-        let detection;
-        for (let block of this.blocks) {
-            detection = block.collisionDetector(game);
-            if(detection) {
-                if (detection === 'gameOver') return 'gameOver';
-                else if (detection === 'leftWall') return 'leftWall';
-                else if (detection === 'rightWall') return 'rightWall';
-                return detection;
-            }
-        }
-        return false;
+        this.move(game.gameCtx, 0, game.level);
+        return true;
     }
 }
+
 class I extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 0;
         this.color = 'lightblue';
         this.patterns = [
@@ -413,167 +421,182 @@ class I extends Tetromino {
                 [0,0,1,0],
                 [0,0,1,0],
                 [0,0,1,0]
-            ],[
+
+            ],
+            [
                 [0,0,0,0],
                 [0,0,0,0],
                 [1,1,1,1],
                 [0,0,0,0]
-            ],[
-                [0,0,1,0],
-                [0,0,1,0],
-                [0,0,1,0],
-                [0,0,1,0]
+
             ]
         ];
     }
 }
 class O extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 1;
-        this.color = 'yellow';
+        this.color = 'gold';
         this.patterns = [
             [
                 [0,0,0,0],
-                [0,0,0,0],
-                [1,1,0,0],
-                [1,1,0,0]
+                [0,1,1,0],
+                [0,1,1,0],
+                [0,0,0,0]
             ]
         ];
     }
 }
 class T extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 2;
         this.color = 'purple';
         this.patterns = [
             [
                 [0,0,0,0],
-                [0,1,0,0],
-                [1,1,0,0],
-                [0,1,0,0]
-            ],[
-                [0,0,0,0],
-                [0,0,0,0],
-                [1,1,1,0],
-                [0,1,0,0]
-            ],[
-                [0,0,0,0],
-                [0,1,0,0],
+                [0,1,1,1],
+                [0,0,1,0],
+                [0,0,0,0]
+            ],
+            [
+                [0,0,1,0],
                 [0,1,1,0],
-                [0,1,0,0]
-            ],[
+                [0,0,1,0],
+                [0,0,0,0]
+            ],
+            [
+                [0,0,1,0],
+                [0,1,1,1],
                 [0,0,0,0],
-                [0,1,0,0],
-                [1,1,1,0],
+                [0,0,0,0]
+            ],
+            [
+                [0,0,1,0],
+                [0,0,1,1],
+                [0,0,1,0],
                 [0,0,0,0]
             ]
         ];
     }
 }
 class L extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 3;
         this.color = 'orange';
         this.patterns = [
             [
-                [0,0,0,0],
-                [0,0,0,0],
                 [0,0,1,0],
-                [1,1,1,0]
-            ],[
+                [0,0,1,0],
+                [0,0,1,1],
+                [0,0,0,0]
+
+            ],
+            [
                 [0,0,0,0],
-                [1,1,0,0],
+                [0,0,0,1],
+                [0,1,1,1],
+                [0,0,0,0]
+
+            ],
+            [
+                [0,0,1,1],
+                [0,0,0,1],
+                [0,0,0,1],
+                [0,0,0,0]
+
+            ],
+            [
+                [0,0,0,0],
+                [0,1,1,1],
                 [0,1,0,0],
-                [0,1,0,0]
-            ],[
-                [0,0,0,0],
-                [0,0,0,0],
-                [1,1,1,0],
-                [1,0,0,0]
-            ],[
-                [0,0,0,0],
-                [1,0,0,0],
-                [1,0,0,0],
-                [1,1,0,0]
+                [0,0,0,0]
+
             ]
         ];
     }
 }
 class J extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 4;
         this.color = 'blue';
         this.patterns = [
             [
-                [0,0,0,0],
-                [0,0,0,0],
-                [1,0,0,0],
-                [1,1,1,0]
-            ],[
+                [0,0,1,0],
+                [0,0,1,0],
+                [0,1,1,0],
+                [0,0,0,0]
+
+            ],
+            [
                 [0,0,0,0],
                 [0,1,0,0],
+                [0,1,1,1],
+                [0,0,0,0]
+
+            ],
+            [
+                [0,1,1,0],
                 [0,1,0,0],
-                [1,1,0,0]
-            ],[
+                [0,1,0,0],
+                [0,0,0,0]
+
+            ],
+            [
                 [0,0,0,0],
-                [0,0,0,0],
-                [1,1,1,0],
-                [0,0,1,0]
-            ],[
-                [0,0,0,0],
-                [1,1,0,0],
-                [1,0,0,0],
-                [1,0,0,0]
+                [0,1,1,1],
+                [0,0,0,1],
+                [0,0,0,0]
+
             ]
         ];
     }
 }
 class Z extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 5;
         this.color = 'red';
         this.patterns = [
             [
                 [0,0,0,0],
-                [0,1,0,0],
-                [1,1,0,0],
-                [1,0,0,0]
-            ],[
-                [0,0,0,0],
-                [0,0,0,0],
-                [1,1,0,0],
-                [0,1,1,0]
+                [0,1,1,0],
+                [0,0,1,1],
+                [0,0,0,0]
+
+            ],
+            [
+                [0,0,0,1],
+                [0,0,1,1],
+                [0,0,1,0],
+                [0,0,0,0]
+
             ]
         ];
     }
 }
 class S extends Tetromino {
-    constructor(view) {
-        super(view);
-        this.view = view;
+    constructor() {
+        super();
         this.id = 6;
         this.color = 'green';
         this.patterns = [
             [
                 [0,0,0,0],
-                [1,0,0,0],
-                [1,1,0,0],
-                [0,1,0,0]
-            ],[
-                [0,0,0,0],
-                [0,0,0,0],
+                [0,0,1,1],
                 [0,1,1,0],
-                [1,1,0,0]
+                [0,0,0,0]
+
+            ],
+            [
+                [0,1,0,0],
+                [0,1,1,0],
+                [0,0,1,0],
+                [0,0,0,0]
+
             ]
         ];
     }

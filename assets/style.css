@@ -4,19 +4,15 @@ body {
     justify-content: center;
     min-height: 100vh;
     margin: 0;
-    background-color: #bada55;
+    background-color: #485726;
 }
 h1 {
     width: 100%;
     text-align: center;
+    color: #f2f2f2;
 }
-#tetris {
+#game-view {
     position: relative;
-    width: 440px;
-    height: 420px;
-    background-color: #f2f2f2;
+    width: 630px;
+    height: 630px;
 }
-#game-layer, #ui-layer, #background-layer { position: absolute; }
-#game-layer { z-index: 3; }
-#ui-layer { z-index: 2; }
-#background-layer { z-index: 1; }
