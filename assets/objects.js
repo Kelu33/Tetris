@@ -25,6 +25,9 @@ class Game {
 
         this.level = 1;
         this.blocks = [];
+        this.lines = [
+            [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+        ];
     }
     init() {
         this.game = document.createElement('canvas');
@@ -139,20 +142,60 @@ class Game {
         this.addControls(this);
     }
     addControls(game) {
-        window.addEventListener('keydown', function (e){ // TODO! debug
-            if (e.key === 'ArrowLeft') {
-                let f = false;
-                for (let block of game.current.blocks) {
-                    if (block.isCollided(game) === 'leftWall') f = true;
+        window.addEventListener('keydown', function (e){
+            // -------------------------------------------------------------
+            // console.log(e.key);
+            /*if (e.key === 'ArrowUp') {
+                game.current.move(game.gameCtx,0 , - game.blockHeight);
+            }*/
+            /*if (e.key === ' ') {
+                game.update();
+            }*/
+            // -------------------------------------------------------------
+            let d1, d2;
+            for (let block of game.current.blocks) {
+                if (
+                    block.isCollided(game, false) ||
+                    block.isCollided(game)
+                ) {
+                    d1 = block.isCollided(game, false);
+                    d2 = block.isCollided(game);
                 }
-                if (!f) game.current.move(game.gameCtx, - game.blockWidth);
+            }
+            if (e.key === 'ArrowLeft') {
+                if (d1 !== 'leftWall') game.current.move(game.gameCtx, - game.blockWidth);
             }
             if (e.key === 'ArrowRight') {
-                let f = false;
-                for (let block of game.current.blocks) {
-                    if (block.isCollided(game) === 'rightWall') f = true;
+                if (d1 !== 'rightWall') game.current.move(game.gameCtx,game.blockWidth);
+            }
+            if (e.key === 'ArrowUp') {
+                while (d2 !== 'bottom') {
+                    for (let block of game.current.blocks) {
+                        if (block.isCollided(game)) {
+                            d2 = block.isCollided(game);
+                        }
+                    }
+                    game.current.move(game.gameCtx,0 , 1);
                 }
-                if (!f) game.current.move(game.gameCtx, + game.blockWidth);
+                game.current.move(game.gameCtx,0 , -1);
+            }
+            // TODO! debug
+            /*if (e.key === 'ArrowDown') {
+                if (d2 !== 'bottom') {
+                    for (let block of game.current.blocks) {
+                        if (block.isCollided(game)) {
+                            d2 = block.isCollided(game);
+                        }
+                    }
+                    game.current.move(game.gameCtx,0 , game.blockHeight);
+                } else {
+                    for (let block of game.current.blocks) {
+                        block.y = Math.floor(block.y);
+                    }
+                }
+            }*/
+            if (e.key === 'Control') {
+                game.current.spin90(game);
             }
         });
     }
@@ -194,6 +237,13 @@ class Game {
         }
         for (let block of this.blocks) {
             block.render(this.backgroundCtx);
+        }
+    }
+    checkForLines() {
+        for (let line of this.lines) {
+            if (line.length === 10) {
+                return line;
+            }
         }
     }
 }
@@ -307,35 +357,48 @@ class Block {
             }
         }
     }
-    isCollided(game) {
-        let detection = false;
-        for (let block of game.blocks) {
-            if (
-                this.y + this.height >= block.y &&
-                this.x  === block.x + block.width  // TODO! debug
-            ) detection = 'leftWall';
-            if (
-                this.y + this.height >= block.y &&
-                this.x + this.width  === block.x
-            ) detection = 'rightWall';
-            if (
-                (
-                    this.y + this.height >= block.y &&
-                    this.x < block.x + block.width &&
-                    this.x >= block.x
-                ) || (
-                    this.y + this.height >= block.y &&
-                    this.x + this.width > block.x &&
-                    this.x <= block.x
-                )
-            ) {
-                if (this.y <= 0) return 'gameOver';
-                return true;
+    isCollided(game, bottom = true) {
+        let detection;
+        if (bottom) {
+            if (this.y + this.height >= game.height) return 'bottom';
+        } else {
+            if (this.x <= game.blockWidth * 6) return 'leftWall';
+            if (this.x + this.width >= game.width - game.blockWidth * 6) return 'rightWall';
+            detection = {
+                'left' : false,
+                'right': false
             }
         }
-        if (this.x <= game.blockWidth * 6) return 'leftWall';
-        else if (detection) return detection;
-        else if (this.x + this.width >= game.blockWidth * 15) return 'rightWall';
+        for (let block of game.blocks) {
+            if (bottom) {
+                if (
+                    Math.floor(this.y + this.height) >= Math.floor(block.y) &&
+                    Math.floor(this.y) <= Math.floor(block.y + block.height) &&
+                    Math.floor(this.x) === Math.floor(block.x)
+                ) {
+                    if (this.y < 0) return 'gameOver';
+                    return 'bottom';
+                }
+            } else {
+                if (
+                    Math.floor(this.y + this.height) > Math.floor(block.y) &&
+                    Math.floor(this.y) < Math.floor(block.y + block.height)
+                ) {
+                    if (Math.floor(this.x) === Math.floor(block.x + block.width)) {
+                        detection['left'] = block;
+                    }
+                    if (Math.floor(this.x + this.width) === Math.floor(block.x)) {
+                        detection['right'] = block;
+                    }
+                }
+            }
+
+        }
+        if (!bottom) {
+            if (!detection['right'] && !detection['left']) return false;
+            else if (!detection['right']) return 'leftWall';
+            else if (!detection['left']) return 'rightWall';
+        }
         else return false;
     }
 }
@@ -347,6 +410,7 @@ class Tetromino {
         this.color = 'rgb(127.5, 127.5, 127.5)';
         this.blocks = [];
         this.spin = 0;
+        this.id = -1;
         this.patterns = [
             [
                 [0,0,0,0],
@@ -386,8 +450,8 @@ class Tetromino {
         x = 0,
         y = 0
     ) {
+        ctx.clearRect(0, 0, game.width, game.height);
         for (let block of this.blocks) {
-            ctx.clearRect(block.x,block.y, block.width, block.height);
             block.x += x;
             block.y += y;
         }
@@ -397,16 +461,90 @@ class Tetromino {
     }
     fall(game) {
         for (let block of this.blocks) {
-            if (block.y + block.height >= game.height) return 'bottom';
             if (block.isCollided(game) === 'gameOver') return false;
-            if (
-                block.isCollided(game) &&
-                block.isCollided(game) !== 'leftWall' &&
-                block.isCollided(game) !== 'rightWall'
-            ) return 'collided';
+            if (block.isCollided(game) === 'bottom') return 'bottom';
         }
         this.move(game.gameCtx, 0, game.level);
         return true;
+    }
+    spin90(game) {
+        game.gameCtx.clearRect(0, 0, game.width, game.height);
+        if (
+            this.id === 0 ||
+            this.id === 1
+        ) {
+            this.posX = this.blocks[0].x - this.blocks[0].width;
+            this.posY = this.blocks[0].y - this.blocks[0].height;
+        } else if (this.id === 2) {
+            if (isEven(this.spin)) {
+                if (this.blocks[1].y < this.blocks[3].y) {
+                    this.posX = this.blocks[2].x - this.blocks[2].width * 3;
+                    this.posY = this.blocks[2].y - this.blocks[2].height;
+                } else {
+                    this.posX = this.blocks[3].x - this.blocks[3].width * 3;
+                    this.posY = this.blocks[2].y - this.blocks[2].height;
+                }
+            } else {
+                if (this.blocks[1].x < this.blocks[3].x) {
+                    this.posX = this.blocks[1].x - this.blocks[1].width;
+                    this.posY = this.blocks[1].y - this.blocks[1].height;
+                } else {
+                    this.posX = this.blocks[1].x - this.blocks[1].width * 2;
+                    this.posY = this.blocks[0].y;
+                }
+            }
+        } else if (this.id === 3) {
+            if (isEven(this.spin)) {
+                if (this.blocks[0].x < this.blocks[1].x) {
+                    this.posX = this.blocks[0].x - this.blocks[0].width * 2;
+                    this.posY = this.blocks[0].y;
+                } else {
+                    this.posX = this.blocks[0].x - this.blocks[0].width;
+                    this.posY = this.blocks[0].y;
+                }
+            } else {
+                if (this.blocks[0].x < this.blocks[1].x) {
+                    this.posX = this.blocks[0].x - this.blocks[0].width * 2;
+                    this.posY = this.blocks[0].y - this.blocks[0].height;
+                } else {
+                    this.posX = this.blocks[0].x - this.blocks[0].width * 3;
+                    this.posY = this.blocks[0].y - this.blocks[0].height;
+                }
+            }
+        } else if (this.id === 4) {
+            if (isEven(this.spin)) {
+                if (this.blocks[0].x < this.blocks[1].x) {
+                    this.posX = this.blocks[0].x - this.blocks[0].width;
+                    this.posY = this.blocks[0].y;
+                } else {
+                    this.posX = this.blocks[0].x - this.blocks[0].width * 2;
+                    this.posY = this.blocks[0].y;
+                }
+            } else {
+                this.posX = this.blocks[0].x - this.blocks[0].width;
+                this.posY = this.blocks[0].y - this.blocks[0].height;
+            }
+        } else if (this.id === 5) {
+            if (isEven(this.spin)) {
+                this.posX = this.blocks[0].x - this.blocks[0].width;
+                this.posY = this.blocks[0].y - this.blocks[0].height;
+            } else {
+                this.posX = this.blocks[0].x - this.blocks[0].width * 3;
+                this.posY = this.blocks[0].y;
+            }
+        } else if (this.id === 6) {
+            if (isEven(this.spin)) {
+                this.posX = this.blocks[0].x - this.blocks[0].width;
+                this.posY = this.blocks[0].y - this.blocks[0].height;
+            } else {
+                this.posX = this.blocks[0].x - this.blocks[0].width * 2;
+                this.posY = this.blocks[0].y;
+            }
+        }
+        this.blocks = [];
+        this.spin++;
+        this.build(game);
+        this.render(game.gameCtx);
     }
 }
 
