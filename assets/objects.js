@@ -24,9 +24,8 @@ class Game {
         this.holdPosY = this.blockHeight + this.blockHeight / 4;
 
         this.level = 1;
-        this.blocks = [];
-        this.lines = [
-            [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+        this.blocks = [
+            [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
         ];
     }
     init() {
@@ -200,9 +199,11 @@ class Game {
         });
     }
     update() {
+        let line;
         for (let block of this.current.blocks) {
+            line = Math.floor(Math.ceil(block.y) / this.blockHeight) + 3;
             block.render(this.backgroundCtx);
-            this.blocks.push(block);
+            this.blocks[line].push(block);
         }
         let tetrominos = [
             new I(this.view),
@@ -221,6 +222,11 @@ class Game {
         this.current.render(this.gameCtx);
         this.nexts.shift();
         this.nexts.push(this.randomTetromino());
+
+        this.build();
+
+        // TODO! hold render
+
         let i = 0;
         for (let next of this.nexts) {
             next.posX = this.nextPosX;
@@ -235,14 +241,28 @@ class Game {
             next.render(this.uiCtx);
             i++;
         }
-        for (let block of this.blocks) {
-            block.render(this.backgroundCtx);
+
+        for (let line of this.blocks) {
+            if (line.length >= 10) {
+                /*for (let lineAbove of this.blocks) {
+                    if (this.blocks.indexOf(lineAbove) < this.blocks.indexOf(line)) {
+                        for (let block of lineAbove) {
+                            block.y += this.blockHeight;
+                        }
+                    }
+                }*/
+                for (let block of line) {
+                    line.splice(line.indexOf(block), 10);
+                }
+                this.blocks.splice(this.blocks.indexOf(line), 1);
+                this.blocks.unshift([]);
+            }
         }
-    }
-    checkForLines() {
-        for (let line of this.lines) {
-            if (line.length === 10) {
-                return line;
+
+        for (let line of this.blocks) {
+            for (let block of line) {
+                block.y = this.blocks.indexOf(line) * this.blockHeight - this.blockHeight * 3;
+                block.render(this.backgroundCtx);
             }
         }
     }
@@ -369,30 +389,31 @@ class Block {
                 'right': false
             }
         }
-        for (let block of game.blocks) {
-            if (bottom) {
-                if (
-                    Math.floor(this.y + this.height) >= Math.floor(block.y) &&
-                    Math.floor(this.y) <= Math.floor(block.y + block.height) &&
-                    Math.floor(this.x) === Math.floor(block.x)
-                ) {
-                    if (this.y < 0) return 'gameOver';
-                    return 'bottom';
-                }
-            } else {
-                if (
-                    Math.floor(this.y + this.height) > Math.floor(block.y) &&
-                    Math.floor(this.y) < Math.floor(block.y + block.height)
-                ) {
-                    if (Math.floor(this.x) === Math.floor(block.x + block.width)) {
-                        detection['left'] = block;
+        for (let line of game.blocks) {
+            for (let block of line) {
+                if (bottom) {
+                    if (
+                        Math.floor(this.y + this.height) >= Math.floor(block.y) &&
+                        Math.floor(this.y) <= Math.floor(block.y + block.height) &&
+                        Math.floor(this.x) === Math.floor(block.x)
+                    ) {
+                        if (this.y < 0) return 'gameOver';
+                        return 'bottom';
                     }
-                    if (Math.floor(this.x + this.width) === Math.floor(block.x)) {
-                        detection['right'] = block;
+                } else {
+                    if (
+                        Math.floor(this.y + this.height) > Math.floor(block.y) &&
+                        Math.floor(this.y) < Math.floor(block.y + block.height)
+                    ) {
+                        if (Math.floor(this.x) === Math.floor(block.x + block.width)) {
+                            detection['left'] = block;
+                        }
+                        if (Math.floor(this.x + this.width) === Math.floor(block.x)) {
+                            detection['right'] = block;
+                        }
                     }
                 }
             }
-
         }
         if (!bottom) {
             if (!detection['right'] && !detection['left']) return false;
