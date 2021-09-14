@@ -3,25 +3,38 @@ console.log('app.js');
 const gameView = document.getElementById('game-view');
 
 let game = new Game(gameView);
-game.level = 5;
+game.level = 1;
 game.init();
 game.start();
 
-let l = setInterval(loop, 350);
+let time = 150;
+let l = setInterval(loop, time);
+let checkTime = 3;
 
 function loop() {
     game.current.fall(game);
     if (!game.current.fall(game)) {
-        console.log('gameOver'); // TODO! f restart()
         clearInterval(l);
+        console.log('gameOver'); // TODO! f restart()
     }
     if (game.current.fall(game) === 'bottom') {
         clearInterval(l);
-        setTimeout(function () {
+        let t = game.current.temporize(game);
+        if (!t) {
             game.update();
-            l = setInterval(loop, 350);
-        }, 150);
-    }
+        }
+        else {
+            if (checkTime > 0) {
+                game.current.fall(game);
+                checkTime--;
+            } else {
+                game.update();
+            }
+        }
+        setTimeout(function () {
+            l = setInterval(loop, time);
+        }, time / 3)
+    } else checkTime = 3;
 }
 
 /*let hold = new T();

@@ -142,32 +142,37 @@ class Game {
     }
     addControls(game) {
         window.addEventListener('keydown', function (e){
+            let d1 = [];
             // -------------------------------------------------------------
             // console.log(e.key);
-            /*if (e.key === 'ArrowUp') {
-                game.current.move(game.gameCtx,0 , - game.blockHeight);
-            }*/
             /*if (e.key === ' ') {
                 game.update();
             }*/
             // -------------------------------------------------------------
-            let d1, d2;
             for (let block of game.current.blocks) {
-                if (
-                    block.isCollided(game, false) ||
-                    block.isCollided(game)
-                ) {
-                    d1 = block.isCollided(game, false);
-                    d2 = block.isCollided(game);
+                if (block.isCollided(game, false)) {
+                    d1.push(block.isCollided(game, false))
                 }
             }
             if (e.key === 'ArrowLeft') {
-                if (d1 !== 'leftWall') game.current.move(game.gameCtx, - game.blockWidth);
+                if (
+                    !d1.includes('leftWall') &&
+                    !d1.includes('both')
+                ) game.current.move(game.gameCtx, - game.blockWidth);
             }
             if (e.key === 'ArrowRight') {
-                if (d1 !== 'rightWall') game.current.move(game.gameCtx,game.blockWidth);
+                if (
+                    !d1.includes('rightWall') &&
+                    !d1.includes('both')
+                ) game.current.move(game.gameCtx,game.blockWidth);
             }
+            let d2;
             if (e.key === 'ArrowUp') {
+                for (let block of game.current.blocks) {
+                    if (block.isCollided(game)) {
+                        d2 = block.isCollided(game);
+                    }
+                }
                 while (d2 !== 'bottom') {
                     for (let block of game.current.blocks) {
                         if (block.isCollided(game)) {
@@ -219,6 +224,7 @@ class Game {
         this.current.posX = this.startPosX;
         this.current.posY = this.startPosY;
         this.current.build(this);
+        this.gameCtx.clearRect(0,0,this.width, this.height);
         this.current.render(this.gameCtx);
         this.nexts.shift();
         this.nexts.push(this.randomTetromino());
@@ -244,13 +250,6 @@ class Game {
 
         for (let line of this.blocks) {
             if (line.length >= 10) {
-                /*for (let lineAbove of this.blocks) {
-                    if (this.blocks.indexOf(lineAbove) < this.blocks.indexOf(line)) {
-                        for (let block of lineAbove) {
-                            block.y += this.blockHeight;
-                        }
-                    }
-                }*/
                 for (let block of line) {
                     line.splice(line.indexOf(block), 10);
                 }
@@ -378,16 +377,15 @@ class Block {
         }
     }
     isCollided(game, bottom = true) {
-        let detection;
+        let detection = {
+            'left' : false,
+            'right': false
+        };
         if (bottom) {
             if (this.y + this.height >= game.height) return 'bottom';
         } else {
-            if (this.x <= game.blockWidth * 6) return 'leftWall';
-            if (this.x + this.width >= game.width - game.blockWidth * 6) return 'rightWall';
-            detection = {
-                'left' : false,
-                'right': false
-            }
+            if (this.x <= game.blockWidth * 6) detection['left'] = true;
+            if (this.x + this.width >= game.width - game.blockWidth * 6) detection['right'] = true;
         }
         for (let line of game.blocks) {
             for (let block of line) {
@@ -416,11 +414,11 @@ class Block {
             }
         }
         if (!bottom) {
-            if (!detection['right'] && !detection['left']) return false;
-            else if (!detection['right']) return 'leftWall';
-            else if (!detection['left']) return 'rightWall';
+            if (detection['left'] && detection['right']) return 'both';
+            else if (detection['left']) return 'leftWall';
+            else if (detection['right']) return 'rightWall';
+            else return false;
         }
-        else return false;
     }
 }
 
@@ -566,6 +564,28 @@ class Tetromino {
         this.spin++;
         this.build(game);
         this.render(game.gameCtx);
+    }
+    temporize(game) {
+        let d = [];
+        for (let block of game.current.blocks) {
+            if (block.isCollided(game, false)) {
+                d.push(block.isCollided(game, false));
+            }
+        }
+        if (
+            d.includes('both') ||
+            (
+                d.includes('leftWall') &&
+                d.includes('rightWall')
+            )
+        ) return false;
+        else if (
+            d.length === 0 ||
+            d.includes('leftWall') ||
+            d.includes('rightWall')
+        ) {
+            return true;
+        }
     }
 }
 
