@@ -27,6 +27,8 @@ class Game {
         this.blocks = [
             [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
         ];
+        this.score = 0;
+        this.combo = 0;
     }
     init() {
         this.game = document.createElement('canvas');
@@ -167,12 +169,12 @@ class Game {
                 ) game.current.move(game.gameCtx,game.blockWidth);
             }
             let d2;
-            if (e.key === 'ArrowUp') {
-                for (let block of game.current.blocks) {
-                    if (block.isCollided(game)) {
-                        d2 = block.isCollided(game);
-                    }
+            for (let block of game.current.blocks) {
+                if (block.isCollided(game)) {
+                    d2 = block.isCollided(game);
                 }
+            }
+            if (e.key === 'ArrowUp') {
                 while (d2 !== 'bottom') {
                     for (let block of game.current.blocks) {
                         if (block.isCollided(game)) {
@@ -183,21 +185,13 @@ class Game {
                 }
                 game.current.move(game.gameCtx,0 , -1);
             }
-            // TODO! debug
-            /*if (e.key === 'ArrowDown') {
+
+            if (e.key === 'ArrowDown') {
                 if (d2 !== 'bottom') {
-                    for (let block of game.current.blocks) {
-                        if (block.isCollided(game)) {
-                            d2 = block.isCollided(game);
-                        }
-                    }
-                    game.current.move(game.gameCtx,0 , game.blockHeight);
-                } else {
-                    for (let block of game.current.blocks) {
-                        block.y = Math.floor(block.y);
-                    }
+                    game.current.move(game.gameCtx,0 , game.blockHeight / 5);
                 }
-            }*/
+            }
+
             if (e.key === 'Control') {
                 game.current.spin90(game);
             }
@@ -248,8 +242,10 @@ class Game {
             i++;
         }
 
+        let score = [];
         for (let line of this.blocks) {
             if (line.length >= 10) {
+                score.push(10);
                 for (let block of line) {
                     line.splice(line.indexOf(block), 10);
                 }
@@ -264,6 +260,13 @@ class Game {
                 block.render(this.backgroundCtx);
             }
         }
+
+        if (score.length > 0) this.combo++;
+        else this.combo = 0;
+        for (let line of score) {
+            this.score += line * score.length * this.combo;
+        }
+
     }
 }
 
@@ -486,7 +489,41 @@ class Tetromino {
         this.move(game.gameCtx, 0, game.level);
         return true;
     }
+    temporize(game) {
+        let d = [];
+        for (let block of game.current.blocks) {
+            if (block.isCollided(game, false)) {
+                d.push(block.isCollided(game, false));
+            }
+        }
+        if (
+            d.includes('both') ||
+            (
+                d.includes('leftWall') &&
+                d.includes('rightWall')
+            )
+        ) return false;
+        else if (
+            d.length === 0 ||
+            d.includes('leftWall') ||
+            d.includes('rightWall')
+        ) {
+            return true;
+        }
+    }
     spin90(game) {
+        let bothD = [];
+        for (let block of this.blocks) {
+            bothD.push(block.isCollided(game, false));
+        }
+        if (
+            bothD.includes('both') ||
+            (
+                bothD.includes('leftWall') &&
+                bothD.includes('rightWall')
+            )
+        ) return false;
+
         game.gameCtx.clearRect(0, 0, game.width, game.height);
         if (
             this.id === 0 ||
@@ -563,29 +600,52 @@ class Tetromino {
         this.blocks = [];
         this.spin++;
         this.build(game);
-        this.render(game.gameCtx);
-    }
-    temporize(game) {
-        let d = [];
-        for (let block of game.current.blocks) {
-            if (block.isCollided(game, false)) {
-                d.push(block.isCollided(game, false));
+
+        let d = {
+            'left' : [],
+            'right' : [],
+            'bottom' : []
+        };
+
+        for (let block of this.blocks) {
+            if (block.isCollided(game, false) === 'leftWall') {
+                if (!d['left'].includes(block.x)) {
+                    d['left'].push(block.x);
+                }
+            }
+            if (block.isCollided(game, false) === 'rightWall') {
+                if (!d['right'].includes(block.x)) {
+                    d['right'].push(block.x);
+                }
+            }
+            if (block.isCollided(game) === 'bottom') {
+                if (!d['bottom'].includes(block.x)) {
+                    d['bottom'].push(block.x);
+                }
             }
         }
-        if (
-            d.includes('both') ||
-            (
-                d.includes('leftWall') &&
-                d.includes('rightWall')
-            )
-        ) return false;
-        else if (
-            d.length === 0 ||
-            d.includes('leftWall') ||
-            d.includes('rightWall')
-        ) {
-            return true;
+        d['left'].shift();
+        d['right'].shift();
+        d['bottom'].shift();
+        if (d['left'].length > 0) {
+            let offset = d['left'].length;
+            for (let block of this.blocks) {
+                block.x += game.blockWidth * offset;
+            }
         }
+        if (d['right'].length > 0) {
+            let offset = d['right'].length;
+            for (let block of this.blocks) {
+                block.x -= game.blockWidth * offset;
+            }
+        }
+        if (d['bottom'].length > 0) {
+            let offset = d['bottom'].length;
+            for (let block of this.blocks) {
+                block.y -= game.blockWidth * offset;
+            }
+        }
+        this.render(game.gameCtx);
     }
 }
 
