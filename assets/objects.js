@@ -111,6 +111,13 @@ class Game {
         frame.y = frame.height;
         frame.height = (this.blockHeight * 5) - this.blockHeight / 2;
         frame.render(this.uiCtx);
+
+        this.uiCtx.fillStyle = this.color2;
+        this.uiCtx.font = '24px sans-serif';
+        this.uiCtx.fillText('score :', this.blockWidth, this.blockHeight * 14);
+        this.uiCtx.fillText(this.score, this.blockWidth, this.blockHeight * 16);
+        this.uiCtx.fillText('lvl', this.blockWidth * 2, this.blockHeight * 18);
+        this.uiCtx.fillText(this.level, this.blockWidth * 2.5, this.blockHeight * 20);
     }
     randomTetromino() {
         let tetrominos = [
@@ -204,6 +211,35 @@ class Game {
             block.render(this.backgroundCtx);
             this.blocks[line].push(block);
         }
+
+        let score = [];
+        for (let line of this.blocks) {
+            if (line.length >= 10) {
+                score.push(100);
+            }
+        }
+        if (score.length > 0) this.combo++;
+        else this.combo = 0;
+        for (let line of score) {
+            this.score += line * score.length * this.combo;
+        }
+        if (this.level < 9) {
+            this.level = Math.floor((this.score / 2000) + 1);
+        }
+
+        if (this.level === 3 || this.level === 4) {
+            this.color1 = '#455734';
+        }
+        if (this.level === 5 || this.level === 6) {
+            this.color1 = '#4f3f2a';
+        }
+        if (this.level === 7 || this.level === 8) {
+            this.color1 = '#001F52';
+        }
+        if (this.level === 9) {
+            this.color1 = '#000';
+        }
+
         let tetrominos = [
             new I(this.view),
             new O(this.view),
@@ -242,10 +278,8 @@ class Game {
             i++;
         }
 
-        let score = [];
         for (let line of this.blocks) {
             if (line.length >= 10) {
-                score.push(10);
                 for (let block of line) {
                     line.splice(line.indexOf(block), 10);
                 }
@@ -260,13 +294,6 @@ class Game {
                 block.render(this.backgroundCtx);
             }
         }
-
-        if (score.length > 0) this.combo++;
-        else this.combo = 0;
-        for (let line of score) {
-            this.score += line * score.length * this.combo;
-        }
-
     }
 }
 

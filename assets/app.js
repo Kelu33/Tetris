@@ -3,7 +3,6 @@ console.log('app.js');
 const gameView = document.getElementById('game-view');
 
 let game = new Game(gameView);
-game.level = 5;
 game.init();
 game.start();
 
