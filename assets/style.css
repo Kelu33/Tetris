@@ -4,7 +4,7 @@ body {
     justify-content: center;
     min-height: 100vh;
     margin: 0;
-    background-color: #485726;
+    background-color: #000;
 }
 h1 {
     width: 100%;
@@ -13,6 +13,6 @@ h1 {
 }
 #game-view {
     position: relative;
-    width: 420px;
-    height: 420px;
+    width: 630px;
+    height: 630px;
 }

@@ -29,6 +29,9 @@ class Game {
         ];
         this.score = 0;
         this.combo = 0;
+
+        this.holding = false;
+
     }
     init() {
         this.game = document.createElement('canvas');
@@ -115,9 +118,9 @@ class Game {
         this.uiCtx.fillStyle = this.color2;
         this.uiCtx.font = '24px sans-serif';
         this.uiCtx.fillText('score :', this.blockWidth, this.blockHeight * 14);
-        this.uiCtx.fillText(this.score, this.blockWidth, this.blockHeight * 16);
-        this.uiCtx.fillText('lvl', this.blockWidth * 2, this.blockHeight * 18);
-        this.uiCtx.fillText(this.level, this.blockWidth * 2.5, this.blockHeight * 20);
+        this.uiCtx.fillText(this.score, this.blockWidth, this.blockHeight * 15);
+        this.uiCtx.fillText('lvl', this.blockWidth * 2.25, this.blockHeight * 18);
+        this.uiCtx.fillText(this.level, this.blockWidth * 2.5, this.blockHeight * 19);
     }
     randomTetromino() {
         let tetrominos = [
@@ -147,6 +150,7 @@ class Game {
             next.render(this.uiCtx);
             this.nexts.push(next);
         }
+        this.hold = false;
         this.addControls(this);
     }
     addControls(game) {
@@ -202,14 +206,76 @@ class Game {
             if (e.key === 'Control') {
                 game.current.spin90(game);
             }
+
+            if (e.key === '0') {
+                if (!game.hold) {
+                    let tetrominos = [
+                        new I(game.view),
+                        new O(game.view),
+                        new T(game.view),
+                        new L(game.view),
+                        new J(game.view),
+                        new Z(game.view),
+                        new S(game.view),
+                    ];
+                    game.hold = tetrominos[game.current.id];
+                    game.current = false;
+                    game.hold.posX = game.holdPosX;
+                    game.hold.posY = game.holdPosY;
+                    game.hold.spin = 0;
+                    game.update();
+                } else if (!game.holding) {
+                    let tetrominos = [
+                        new I(game.view),
+                        new O(game.view),
+                        new T(game.view),
+                        new L(game.view),
+                        new J(game.view),
+                        new Z(game.view),
+                        new S(game.view),
+                    ];
+                    let tetrominos2 = [
+                        new I(game.view),
+                        new O(game.view),
+                        new T(game.view),
+                        new L(game.view),
+                        new J(game.view),
+                        new Z(game.view),
+                        new S(game.view),
+                    ];
+                    game.uiCtx.clearRect(
+                        game.blockWidth / 4,
+                        game.blockHeight / 4,
+                        game.blockWidth * 5,
+                        game.blockHeight * 6)
+                    let lastHold = game.hold;
+                    game.hold = tetrominos[game.current.id];
+                    game.hold.posX = game.holdPosX;
+                    game.hold.posY = game.holdPosY;
+                    game.hold.spin = 0;
+                    game.hold.build(game);
+                    game.hold.render(game.uiCtx);
+
+                    game.current = tetrominos2[lastHold.id];
+                    game.current.posX = game.startPosX;
+                    game.current.posY = game.startPosY;
+                    game.current.build(game);
+                    game.current.render(game.gameCtx);
+
+                    game.holding = true;
+
+                }
+            }
         });
     }
     update() {
-        let line;
-        for (let block of this.current.blocks) {
-            line = Math.floor(Math.ceil(block.y) / this.blockHeight) + 3;
-            block.render(this.backgroundCtx);
-            this.blocks[line].push(block);
+        if (this.current) {
+            let line;
+            for (let block of this.current.blocks) {
+                line = Math.floor(Math.ceil(block.y) / this.blockHeight) + 3;
+                block.render(this.backgroundCtx);
+                this.blocks[line].push(block);
+            }
         }
 
         let score = [];
@@ -234,7 +300,7 @@ class Game {
             this.color1 = '#4f3f2a';
         }
         if (this.level === 7 || this.level === 8) {
-            this.color1 = '#001F52';
+            this.color1 = '#616161';
         }
         if (this.level === 9) {
             this.color1 = '#000';
@@ -254,14 +320,17 @@ class Game {
         this.current.posX = this.startPosX;
         this.current.posY = this.startPosY;
         this.current.build(this);
-        this.gameCtx.clearRect(0,0,this.width, this.height);
         this.current.render(this.gameCtx);
         this.nexts.shift();
         this.nexts.push(this.randomTetromino());
 
         this.build();
 
-        // TODO! hold render
+        if (this.hold) {
+            this.hold.build(game);
+            this.hold.render(this.uiCtx);
+            this.holding = false;
+        }
 
         let i = 0;
         for (let next of this.nexts) {
