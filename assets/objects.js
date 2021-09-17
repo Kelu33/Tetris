@@ -1,5 +1,3 @@
-console.log('objects.js');
-
 class Game {
     constructor(view) {
         this.view = view;
@@ -33,7 +31,7 @@ class Game {
         this.holding = false;
 
     }
-    init() {
+    init(restart = false) {
         this.game = document.createElement('canvas');
         if (!this.game.getContext('2d')) {
             let error = document.createElement('div');
@@ -51,6 +49,64 @@ class Game {
         this.background = document.createElement('canvas');
         this.backgroundCtx = this.background.getContext('2d');
         this.background.id = 'background-layer';
+
+
+        let startPanel = document.createElement('div');
+        startPanel.id = 'start-panel';
+        startPanel.style.zIndex = '4';
+        startPanel.style.textAlign = 'center';
+        startPanel.style.fontFamily = 'sans-serif';
+        startPanel.style.width = '50%';
+        startPanel.style.height = '60%';
+        this.view.appendChild(startPanel);
+
+        if (!restart) {
+            let keyBinding = document.createElement('div');
+            keyBinding.id = 'key-binding';
+            keyBinding.style.color = this.color2;
+            keyBinding.style.height = '75%';
+            keyBinding.style.textAlign = 'left';
+            startPanel.appendChild(keyBinding);
+
+            let leftRight = document.createElement('p');
+            leftRight.innerHTML = 'left &nbsp;&nbsp;  right &nbsp;&nbsp; : &nbsp;&nbsp; &#x2190 &nbsp;&nbsp; &#x2192';
+            keyBinding.appendChild(leftRight);
+
+            let down = document.createElement('p');
+            down.innerHTML = 'speed fall &nbsp;&nbsp; : &nbsp;&nbsp; &#x2193;';
+            keyBinding.appendChild(down);
+            let up = document.createElement('p');
+            up.innerHTML = 'instant fall &nbsp;&nbsp; : &nbsp;&nbsp; &#x2191;';
+            keyBinding.appendChild(up);
+
+            let ctrl = document.createElement('p');
+            ctrl.innerHTML = 'spin &nbsp;&nbsp; : &nbsp;&nbsp; ctrl';
+            keyBinding.appendChild(ctrl);
+            let shift = document.createElement('p');
+            shift.innerHTML = 'hold &nbsp;&nbsp; : &nbsp;&nbsp; shift';
+            keyBinding.appendChild(shift);
+        }
+
+        let gameOverPanel = document.createElement('div');
+        gameOverPanel.style.display = 'none';
+        gameOverPanel.id = 'game-over-panel';
+        gameOverPanel.style.color = this.color2;
+        gameOverPanel.style.height = '75%';
+        gameOverPanel.innerHTML = 'GAME &nbsp;&nbsp; OVER';
+        startPanel.appendChild(gameOverPanel);
+
+        let stats = document.createElement('p');
+        gameOverPanel.appendChild(stats);
+
+        let startButton = document.createElement('button');
+        startButton.textContent = 'START';
+        startButton.id = 'start-button';
+        startButton.style.borderRadius = '4px';
+        startButton.style.fontWeight = 'bold';
+        startButton.style.color = this.color1;
+        startButton.style.backgroundColor = this.color2;
+        startPanel.appendChild(startButton);
+
         let elements = [
             this.game,
             this.ui,
@@ -207,7 +263,7 @@ class Game {
                 game.current.spin90(game);
             }
 
-            if (e.key === '0') {
+            if (e.key === 'Shift') {
                 if (!game.hold) {
                     let tetrominos = [
                         new I(game.view),

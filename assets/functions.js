@@ -1,5 +1,3 @@
-console.log('functions.js');
-
 /**
  * return a number >= 0 and < nb (ex: dice(3) return 0, 1 or 2)
  * @param nb
