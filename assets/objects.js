@@ -253,10 +253,14 @@ class Game {
                 game.current.move(game.gameCtx,0 , -1);
             }
 
-            if (e.key === 'ArrowDown') {
-                if (d2 !== 'bottom') {
-                    game.current.move(game.gameCtx,0 , game.blockHeight / 5);
+            if (e.key === 'ArrowDown') { // TODO! fix collision
+                for (let block of game.current.blocks) {
+                    if (block.isCollided(game)) {
+                        d2 = block.isCollided(game);
+                        if (d2 === 'bottom') return;
+                    }
                 }
+                game.current.move(game.gameCtx,0 , game.level);
             }
 
             if (e.key === 'Control') {
@@ -546,8 +550,7 @@ class Block {
             for (let block of line) {
                 if (bottom) {
                     if (
-                        Math.floor(this.y + this.height) >= Math.floor(block.y) &&
-                        Math.floor(this.y) <= Math.floor(block.y + block.height) &&
+                        Math.floor(this.y + this.height) === Math.floor(block.y) &&
                         Math.floor(this.x) === Math.floor(block.x)
                     ) {
                         if (this.y < 0) return 'gameOver';
